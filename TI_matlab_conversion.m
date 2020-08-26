@@ -29,14 +29,14 @@ A = readcell('first_48_batch_edited.txt');
 % important factors.
 num_of_images = 0;
 num_of_bytes = 0;
-for heck = 1:size(A, 1)
+for index = 1:size(A, 1)
     % Here, we want to isolate out the LUT config commands for the number
     % of images, and the upload commands to determine the number of bytes
     % of data sent
-    if strcmp(A{heck, 1},'MBOX_DATA') == 1
+    if strcmp(A{index, 1},'MBOX_DATA') == 1
         num_of_images = num_of_images + 1;
-    elseif strcmp(A{heck, 1},'PATMEM_LOAD_INIT_MASTER') == 1
-        hex = strcat(num2str(A{heck, 7}), num2str(A{heck, 6}), num2str(A{heck, 5}), num2str(A{heck, 4}));
+    elseif strcmp(A{index, 1},'PATMEM_LOAD_INIT_MASTER') == 1
+        hex = strcat(num2str(A{index, 7}), num2str(A{index, 6}), num2str(A{index, 5}), num2str(A{index, 4}));
         num_of_bytes = num_of_bytes + hex2dec(hex);
     end
 end
@@ -51,7 +51,7 @@ end
 % 8: start the pattern (1)
 num_of_commands = num_of_images + fix(num_of_bytes/54) + 7;
 
-%% BEFORE THE UPLOADING ATTACKED
+%% Data Uploading
 % Within this section, we convert all of the commands we obtained from the
 % cell array A that DO NOT include anything about the upload of the
 % compressed data, as that must be handled separately.
@@ -88,7 +88,7 @@ end
 init_string{1, 62} = [];
 init_string(1, 1:7) = {40,2,3,0,24,'1A',0};
 command_array(2,:) = init_string;
-%% THE ASSAULT OF COMPRESSION
+%% Compression Splicing
 % After getting the headers, next, we don't need to convert most of the
 % data, have to change the currently blank table to that format. The
 % problem comes when converting the 504 data chunks into 54 or less byte
@@ -190,17 +190,7 @@ end
 % Open connection to the DMD
 d = DMD('debug', 1);
 
-for idx = 1:size(command_array, 1)
-    % Error on hex2dec(data), says that the input argument needs to be a
-    % character vector, string, or cell array of character vectors. Perhaps
-    % data is being confused when there is no data there? (such as a [])
-    % THIS METHOD DEPENDS EXCLUSIVELY ON IF THE SEND FUNCTION TAKES IN A
-    % CELL ARRAY OF BINARY THROUGH THE CONNECTION! ENSURE THAT IS TRUE, IT
-    % COULD BE JUST A STRING OF BINARY, SOMETHING, WHATEVER THE FUCK IT'S
-    % SUPPOSED TO BE
-    
-    % so, data works when the entire row is filled, but not with []
-    % elements
+for idx = 1:size(command_array, 1)    
     data_stopper = 62;
     for idk = 7:62
         if isnumeric(command_array{idx, idk})
@@ -212,9 +202,6 @@ for idx = 1:size(command_array, 1)
         end
     end
     data = command_array(idx,7:data_stopper);
-    % contains everything except for the byte header?
-    % possible issue that the array contains missing elements
-    % typecast each individual element to a char?
     data = dec2bin(hex2dec(data),8); 
     cmd = Command();
     cmd.Mode = 'w';                     % set to write mode
@@ -249,4 +236,3 @@ for idx = 1:size(command_array, 1)
     d.receive;
 end
 toc
-% BOOM
